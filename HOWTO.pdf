@@ -1,0 +1,109 @@
+%PDF-1.4
+%âãÏÓ
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+5 0 obj
+<< /Length 2972 >>
+stream
+BT
+/F1 10 Tf
+72 740 Td (HOW TO CREATE THE SYNOVA AI DEMO APP) Tj
+72 728 Td () Tj
+72 716 Td () Tj
+72 704 Td (This guide explains how to set up, run, and extend the Synova AI demo app included in this) Tj
+72 692 Td ( repository.) Tj
+72 680 Td () Tj
+72 668 Td (PREREQUISITES) Tj
+72 656 Td () Tj
+72 644 Td () Tj
+72 632 Td (- Python 3.10+ installed and available on PATH) Tj
+72 620 Td (- Optional: virtualenv / venv for a clean environment) Tj
+72 608 Td () Tj
+72 596 Td (FILES IN THE PROJECT) Tj
+72 584 Td () Tj
+72 572 Td () Tj
+72 560 Td (- `main.py` â€” FastAPI demo server \(sqlite persistence\)) Tj
+72 548 Td (- `requirements.txt` â€” Python dependencies) Tj
+72 536 Td (- `terrestrial.html` â€” Single-file frontend demo \(localStorage persistence, export/import\)) Tj
+72 524 Td (- `start.sh` / `start.bat` â€” helper scripts to start the server) Tj
+72 512 Td (- `tests/test_main.py` â€” pytest unit tests for the backend) Tj
+72 500 Td () Tj
+72 488 Td (QUICK START \(WINDOWS\)) Tj
+72 476 Td () Tj
+72 464 Td () Tj
+72 452 Td (1. Open PowerShell and cd into the project folder:) Tj
+72 440 Td () Tj
+72 428 Td (cd C:\\Users\\Fuzzy\\synova-ai-project) Tj
+72 416 Td () Tj
+72 404 Td (2. \(Optional\) Create and activate a virtual environment:) Tj
+72 392 Td () Tj
+72 380 Td (python -m venv synova-env) Tj
+72 368 Td (.\\synova-env\\Scripts\\Activate.ps1) Tj
+72 356 Td () Tj
+72 344 Td (3. Install dependencies:) Tj
+72 332 Td () Tj
+72 320 Td (python -m pip install --upgrade pip) Tj
+72 308 Td (pip install -r requirements.txt) Tj
+72 296 Td () Tj
+72 284 Td (4. Start the backend server:) Tj
+72 272 Td () Tj
+72 260 Td (python -m uvicorn main:app --host 0.0.0.0 --port 8000) Tj
+72 248 Td () Tj
+72 236 Td (5. Open the frontend:) Tj
+72 224 Td () Tj
+72 212 Td (- Double-click `terrestrial.html` \(may be subject to file:// CORS restrictions\)) Tj
+72 200 Td (- Or serve the folder and open `http://localhost:8080/terrestrial.html`:) Tj
+72 188 Td () Tj
+72 176 Td (python -m http.server 8080) Tj
+72 164 Td () Tj
+72 152 Td (RUNNING TESTS) Tj
+72 140 Td () Tj
+72 128 Td () Tj
+72 116 Td (From project root:) Tj
+72 104 Td () Tj
+72 92 Td (pytest -q) Tj
+72 80 Td () Tj
+72 68 Td (EXPORTING AND IMPORTING CHAT HISTORY) Tj
+72 56 Td () Tj
+72 44 Td () Tj
+72 32 Td (- Use the Export button in the UI to download `synova_chat_history.json`.) Tj
+72 20 Td (- Use Import to select a JSON file and reload the UI with the imported conversation.) Tj
+72 8 Td () Tj
+72 -4 Td (EXTENDING THE APP) Tj
+72 -16 Td () Tj
+72 -28 Td () Tj
+72 -40 Td (- Integrate a real LLM \(OpenAI, Anthropic\): modify `main.py` to call APIs in `generate_res) Tj
+72 -52 Td (ponse\(\)`.) Tj
+72 -64 Td (- Add authentication, user accounts and per-user databases.) Tj
+72 -76 Td (- Improve the frontend look and accessibility.) Tj
+72 -88 Td () Tj
+72 -100 Td (---) Tj
+72 -112 Td () Tj
+72 -124 Td (If you want this guide as a PDF, run the included mkpdf.py script which uses ReportLab to ) Tj
+72 -136 Td (render the markdown to a simple PDF.) Tj
+ET
+endstream
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /MediaBox [0 0 612 792] /Contents 5 0 R >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000121 00000 n 
+0000003145 00000 n 
+0000003215 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+3341
+%%EOF

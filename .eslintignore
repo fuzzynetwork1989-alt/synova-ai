@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+/dist/
+/build/
+/web-build/
+
+# Coverage directory
+/coverage/
+
+# Environment files
+.env*
+
+# IDE
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+
+# Testing
+/__tests__/__snapshots__/
+
+# Expo
+.expo/
+web-build/
+
+# Other
+*.md
+*.mdx
+*.svg
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.woff
+*.woff2
+*.ttf
+*.eot
+*.graphql
+*.graphqls
+*.sql
+*.sqlite
+*.sqlite3
+*.db
+*.sql.*
+*.sqlite.*
+*.sqlite3.*
+*.db.*
+*.sql.*

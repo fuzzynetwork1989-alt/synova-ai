@@ -1,0 +1,9 @@
+secrets:
+  - APP_STORE_CONNECT_API_KEY_JSON
+
+env:
+  - APP_STORE_CONNECT_API_KEY_JSON
+
+rules:
+  action:
+    enabled: false

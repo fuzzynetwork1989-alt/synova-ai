@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AuraSync Local LLM</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --chat-bg: #161b22;
+            --input-bg: #21262d;
+            --accent: #58a6ff;
+            --text-main: #c9d1d9;
+            --user-msg-bg: #1f6feb;
+            --ai-msg-bg: #21262d;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Header / Controls */
+        .header {
+            padding: 1rem;
+            background: var(--chat-bg);
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        select, input, button {
+            background: var(--input-bg);
+            color: var(--text-main);
+            border: 1px solid #30363d;
+            padding: 8px 12px;
+            border-radius: 6px;
+            outline: none;
+        }
+
+        input#system { flex-grow: 1; min-width: 200px; }
+        
+        button { cursor: pointer; transition: background 0.2s; font-weight: 600; }
+        button:hover { background: #30363d; }
+        button#export { color: var(--accent); border-color: var(--accent); }
+
+        /* Chat Area */
+        #chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 10px 16px;
+            border-radius: 12px;
+            line-height: 1.6;
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background-color: var(--user-msg-bg);
+            color: white;
+            border-bottom-right-radius: 2px;
+        }
+
+        .message.assistant {
+            align-self: flex-start;
+            background-color: var(--ai-msg-bg);
+            border: 1px solid #30363d;
+            border-bottom-left-radius: 2px;
+        }
+
+        /* Markdown Styles within Chat */
+        .message-content p { margin: 0 0 10px 0; }
+        .message-content p:last-child { margin-bottom: 0; }
+        .message-content pre { background: #0d1117; padding: 10px; border-radius: 6px; overflow-x: auto; }
+        .message-content code { font-family: 'Consolas', monospace; font-size: 0.9em; }
+
+        /* Input Area */
+        .input-area {
+            padding: 20px;
+            background: var(--chat-bg);
+            border-top: 1px solid #30363d;
+            display: flex;
+            gap: 10px;
+        }
+
+        textarea {
+            flex: 1;
+            background: var(--input-bg);
+            color: var(--text-main);
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 12px;
+            resize: none;
+            height: 24px;
+            max-height: 150px;
+            font-family: inherit;
+            line-height: 1.4;
+        }
+
+        .typing-indicator::after {
+            content: '●';
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <select id="model-select">
+            <option value="" disabled selected>Loading models...</option>
+        </select>
+        <input id="system-input" placeholder="System prompt..." value="You are a helpful expert on gaming hardware, specifically Samsung OLED monitors and TVs." />
+        <button id="clear-btn" title="Clear Context">Reset</button>
+        <button id="stop-btn" style="display:none; color: #ff7b72;">Stop</button>
+        <button id="export-btn">Save Chat</button>
+    </div>
+
+    <div id="chat-container">
+        </div>
+
+    <div class="input-area">
+        <textarea id="user-input" placeholder="Message AuraSync... (Shift+Enter for new line)" rows="1"></textarea>
+        <button id="send-btn">Send</button>
+    </div>
+
+    <script>
+        const OLLAMA_API = 'http://localhost:11434/api';
+        
+        // DOM Elements
+        const chatContainer = document.getElementById('chat-container');
+        const modelSelect = document.getElementById('model-select');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const systemInput = document.getElementById('system-input');
+
+        // State
+        let chatHistory = [];
+        let abortController = null; // For stopping generation
+
+        // Initialize
+        fetchModels();
+        userInput.focus();
+
+        // --- Event Listeners ---
+
+        document.getElementById('clear-btn').addEventListener('click', () => {
+            chatHistory = [];
+            chatContainer.innerHTML = '';
+            userInput.focus();
+        });
+
+        document.getElementById('export-btn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(chatHistory, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `aurasync-log-${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+        });
+
+        sendBtn.addEventListener('click', sendMessage);
+        
+        stopBtn.addEventListener('click', () => {
+            if (abortController) {
+                abortController.abort();
+                abortController = null;
+                endGenerationState();
+            }
+        });
+
+        // Auto-resize textarea and handle Enter key
+        userInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // --- Core Functions ---
+
+        async function fetchModels() {
+            try {
+                const response = await fetch(`${OLLAMA_API}/tags`);
+                const data = await response.json();
+                modelSelect.innerHTML = data.models.map(m => 
+                    `<option value="${m.name}">${m.name}</option>`
+                ).join('');
+            } catch (e) {
+                modelSelect.innerHTML = `<option disabled>Error connecting to Ollama</option>`;
+                appendMessage('system', 'Error: Could not connect to Ollama. Make sure it is running on port 11434.');
+            }
+        }
+
+        function appendMessage(role, text) {
+            const div = document.createElement('div');
+            div.className = `message ${role}`;
+            div.innerHTML = `<div class="message-content">${parseMarkdown(text)}</div>`;
+            chatContainer.appendChild(div);
+            scrollToBottom();
+            return div;
+        }
+
+        function scrollToBottom() {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function parseMarkdown(text) {
+            // Configure marked
+            const rawHtml = marked.parse(text);
+            // Sanitize HTML
+            return DOMPurify.sanitize(rawHtml);
+        }
+
+        function startGenerationState() {
+            sendBtn.disabled = true;
+            stopBtn.style.display = 'inline-block';
+            userInput.disabled = true;
+        }
+
+        function endGenerationState() {
+            sendBtn.disabled = false;
+            stopBtn.style.display = 'none';
+            userInput.disabled = false;
+            userInput.style.height = 'auto';
+            userInput.focus();
+        }
+
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            const model = modelSelect.value;
+            if (!text || !model) return;
+
+            // UI Updates
+            userInput.value = '';
+            userInput.style.height = 'auto';
+            appendMessage('user', text);
+            startGenerationState();
+
+            // Prepare History
+            const currentMessages = [
+                { role: 'system', content: systemInput.value },
+                ...chatHistory,
+                { role: 'user', content: text }
+            ];
+
+            // Create Assistant Placeholder
+            const assistantDiv = document.createElement('div');
+            assistantDiv.className = 'message assistant';
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content typing-indicator';
+            assistantDiv.appendChild(contentDiv);
+            chatContainer.appendChild(assistantDiv);
+            scrollToBottom();
+
+            let fullResponse = "";
+            abortController = new AbortController();
+
+            try {
+                const response = await fetch(`${OLLAMA_API}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: model,
+                        options: { num_ctx: 2048 },
+			messages: currentMessages,
+                    }),
+                    signal: abortController.signal
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                contentDiv.classList.remove('typing-indicator');
+
+                let buffer = ''; // Handle split JSON chunks
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    buffer += chunk;
+                    
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop(); // Keep the last incomplete line in buffer
+
+                    for (const line of lines) {
+                        if (!line.trim()) continue;
+                        try {
+                            const json = JSON.parse(line);
+                            if (json.message && json.message.content) {
+                                fullResponse += json.message.content;
+                                // Update UI incrementally
+                                contentDiv.innerHTML = parseMarkdown(fullResponse);
+                                // Highlight code blocks dynamically
+                                contentDiv.querySelectorAll('pre code').forEach((block) => {
+                                    hljs.highlightElement(block);
+                                });
+                                scrollToBottom();
+                            }
+                            if (json.done) {
+                                chatHistory.push({ role: 'user', content: text });
+                                chatHistory.push({ role: 'assistant', content: fullResponse });
+                            }
+                        } catch (e) {
+                            console.error("JSON Parse Error on line", line);
+                        }
+                    }
+                }
+
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    contentDiv.innerHTML += ' [Stopped]';
+                } else {
+                    contentDiv.innerHTML += `<br><span style="color:red">Error: ${error.message}</span>`;
+                }
+            } finally {
+                endGenerationState();
+                abortController = null;
+            }
+        }
+    </script>
+</body>
+</html>

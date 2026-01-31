@@ -1,0 +1,13 @@
+line-length = 100
+
+[lint]
+# Start with the main Ruff rule sets (pyflakes + pycodestyle + misc)
+select = ["E", "F", "W", "B"]
+ignore = [
+  # Allow module-level prints / scripts if present
+  "T201",
+]
+
+[lint.per-file-ignores]
+# Tests can be a bit looser if needed later; currently none.
+"tests/*" = []

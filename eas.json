@@ -1,0 +1,58 @@
+{
+  "cli": {
+    "version": ">= 5.9.1"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
+      }
+    },
+    "production": {
+      "android": {
+        "buildType": "app-bundle",
+        "gradleCommand": ":app:assembleRelease"
+      },
+      "ios": {
+        "buildConfiguration": "Release"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "production"
+      },
+      "ios": {
+        "appleId": "your-apple-id@example.com",
+        "ascAppId": "your-app-store-connect-app-id",
+        "appleIdPassword": "your-app-specific-password"
+      }
+    }
+  },
+  "env": {
+    "production": {
+      "API_ENDPOINT": "https://your-railway-app-url.railway.app",
+      "SYNOVA_MODE": "production"
+    },
+    "preview": {
+      "API_ENDPOINT": "https://your-railway-app-url.railway.app",
+      "SYNOVA_MODE": "staging"
+    }
+  }
+}

@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Synova Terrestrial - Free</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 24px
+        }
+
+        .app {
+            max-width: 720px;
+            margin: 32px auto;
+            background: rgba(255, 255, 255, 0.06);
+            padding: 18px;
+            border-radius: 12px
+        }
+
+        .messages {
+            height: 360px;
+            overflow: auto;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.12);
+            border-radius: 8px
+        }
+
+        .message {
+            margin: 8px 0;
+            padding: 8px;
+            border-radius: 6px
+        }
+
+        .from-user {
+            background: rgba(255, 255, 255, 0.08);
+            text-align: right
+        }
+
+        .from-ai {
+            background: rgba(0, 0, 0, 0.2);
+            text-align: left
+        }
+
+        .controls {
+            display: flex;
+            margin-top: 12px
+        }
+
+        textarea {
+            flex: 1;
+            padding: 8px;
+            border-radius: 6px;
+            border: 0;
+            resize: none
+        }
+
+        button {
+            margin-left: 8px;
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: 0;
+            background: #4ecdc4;
+            color: #000;
+            font-weight: 600
+        }
+
+        #tierSelect {
+            padding: 6px;
+            border-radius: 6px;
+            border: 0;
+            font-weight: 600;
+        }
+    </style>
+</head>
+            <select id="tierSelect" title="Select tier">
+                <option value="terrestrial">Terrestrial (Free)</option>
+                <option value="aerial">Aerial (Pro)</option>
+                <option value="celestial">Celestial (Premium)</option>
+            </select>
+        <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px">
+            <label style="font-size:13px">Tier:</label>
+            <select id="tierSelect" style="padding:6px;border-radius:6px;border:0;font-weight:600">
+                <option value="terrestrial">Terrestrial (Free)</option>
+                <option value="aerial">Aerial (Pro)</option>
+                <option value="celestial">Celestial (Premium)</option>
+            </select>
+
+            <div style="margin-left:auto;font-size:13px;opacity:0.95">Messages: <span id="msgCount">0</span></div>
+        </div>
+
+        <div class="messages" id="messages" aria-live="polite"></div>
+
+        <div class="controls">
+            <textarea id="input" rows="2"
+                placeholder="Say hello... (try: 'Hello', 'Tell me a joke', 'Fun fact')"></textarea>
+            <button id="send">Send</button>
+            <button id="retry" title="Retry last request" style="background:#ffd166;color:#000">Retry</button>
+            <button id="exportHistory" title="Export local chat history"
+                style="background:#8ecae6;color:#000;margin-left:6px">Export</button>
+            <label for="importFile" style="margin-left:6px">
+                <button id="importHistoryBtn" title="Import chat history"
+                    style="background:#a0c4ff;color:#000">Import</button>
+            </label>
+            <input id="importFile" type="file" accept="application/json" style="display:none" />
+            <button id="clearHistory" title="Clear local chat history"
+                style="background:#ff6b6b;color:#fff;margin-left:6px">Clear history</button>
+        </div>
+        <p style="opacity:0.9;font-size:13px">Backend: <span id="backendStatus">unknown</span></p>
+    </div>
+
+    <script>
+        const messagesEl = document.getElementById('messages');
+        const inputEl = document.getElementById('input');
+        const sendBtn = document.getElementById('send');
+        const backendStatus = document.getElementById('backendStatus');
+        const STORAGE_KEY = 'synova_chat_history_v1';
+
+        // appendMessage persists by default; set persist=false when rendering loaded history
+        function appendMessage(text, cls, time, persist = true) {
+            const d = document.createElement('div');
+            d.className = 'message ' + cls;
+            const ts = document.createElement('div');
+            ts.style.fontSize = '11px';
+            ts.style.opacity = '0.7';
+            ts.style.marginTop = '6px';
+            const when = time || new Date().toLocaleTimeString();
+            ts.textContent = when;
+            d.textContent = text;
+            d.appendChild(ts);
+            messagesEl.appendChild(d);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+            // update message count
+            const nEl = document.getElementById('msgCount');
+            nEl.textContent = parseInt(nEl.textContent || '0') + 1;
+
+            if (persist) {
+                saveMessage(cls.includes('from-user') ? 'user' : 'ai', text, when);
+            }
+        }
+
+        function saveMessage(role, text, time) {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY) || '[]';
+                const arr = JSON.parse(raw);
+                arr.push({ role, text, time });
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+            } catch (e) {
+                console.warn('Could not save message to localStorage', e);
+            }
+        }
+
+        function loadHistory() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY) || '[]';
+                const arr = JSON.parse(raw);
+                const nEl = document.getElementById('msgCount');
+                nEl.textContent = 0;
+                messagesEl.innerHTML = '';
+                arr.forEach(m => {
+                    const cls = m.role === 'user' ? 'from-user' : 'from-ai';
+                    appendMessage(m.text, cls, m.time, false);
+                });
+                // set count to loaded number
+                nEl.textContent = arr.length;
+            } catch (e) {
+                console.warn('Could not load history', e);
+            }
+        }
+
+        function clearHistory() {
+            try {
+                localStorage.removeItem(STORAGE_KEY);
+                messagesEl.innerHTML = '';
+                document.getElementById('msgCount').textContent = '0';
+                lastRequest = null;
+            } catch (e) {
+                console.warn('Could not clear history', e);
+            }
+        }
+
+        async function checkBackend() {
+            try {
+                const r = await fetch('http://localhost:8000/');
+                if (r.ok) {
+                    backendStatus.textContent = 'running';
+                } else {
+                    backendStatus.textContent = 'unreachable';
+                }
+            } catch (e) {
+                backendStatus.textContent = 'unreachable'
+            }
+        }
+
+        let lastRequest = null;
+        async function sendMessage(text, tier) {
+            lastRequest = { text, tier };
+            appendMessage(text, 'from-user');
+            try {
+                const res = await fetch('http://localhost:8000/api/chat', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: text, tier })
+                });
+                if (!res.ok) {
+                    appendMessage('Error: backend returned ' + res.status, 'from-ai');
+                    return;
+                }
+                const data = await res.json();
+                appendMessage(data.response || 'No reply', 'from-ai');
+            } catch (err) {
+                appendMessage('Could not reach backend. Make sure server is running.', 'from-ai');
+            }
+        }
+
+        sendBtn.addEventListener('click', async () => {
+            const text = inputEl.value.trim();
+            if (!text) return;
+            const tier = document.getElementById('tierSelect').value;
+            inputEl.value = '';
+            sendMessage(text, tier);
+        });
+
+        document.getElementById('retry').addEventListener('click', () => {
+            if (lastRequest) sendMessage(lastRequest.text, lastRequest.tier);
+        });
+
+        // Export/Import handlers
+        function exportHistory() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY) || '[]';
+                const blob = new Blob([raw], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'synova_chat_history.json';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                alert('Could not export history: ' + e);
+            }
+        }
+
+        async function importHistory(file) {
+            try {
+                const text = await file.text();
+                const parsed = JSON.parse(text);
+                if (!Array.isArray(parsed)) throw new Error('Invalid format: expected an array');
+                // basic validation
+                for (const item of parsed) {
+                    if (typeof item.role !== 'string' || typeof item.text !== 'string' || typeof item.time !== 'string') {
+                        throw new Error('Invalid item in imported file');
+                    }
+                }
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+                alert('Import successful — reloading to apply.');
+                location.reload();
+            } catch (e) {
+                alert('Failed to import history: ' + e.message);
+            }
+        }
+
+        document.getElementById('exportHistory').addEventListener('click', exportHistory);
+        document.getElementById('importFile').addEventListener('change', (ev) => {
+            const f = ev.target.files && ev.target.files[0];
+            if (f) importHistory(f);
+            // reset the input so same file can be reselected later
+            ev.target.value = '';
+        });
+
+        document.getElementById('clearHistory').addEventListener('click', () => {
+            if (confirm('Clear local chat history? This cannot be undone.')) clearHistory();
+        });
+
+        // Load persisted messages on start
+        loadHistory();
+        checkBackend();
+        setInterval(checkBackend, 5000);
+    </script>
+</body>
+
+</html>

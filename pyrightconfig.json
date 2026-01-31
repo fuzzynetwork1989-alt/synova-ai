@@ -1,0 +1,38 @@
+{
+  "exclude": [
+    "**/__pycache__",
+    "**/node_modules",
+    "**/.git",
+    "**/.vs",
+    "**/.vscode",
+    "**/build",
+    "**/dist",
+    "**/.expo",
+    "**/.expo-shared",
+    "**/web-build",
+    "**/alembic/versions",
+    "**/tests/__pycache__",
+    "**/app/__pycache__",
+    "**/synova-ai-clone",
+    "**/synova-ai",
+    "**/.snapshots",
+    "**/fastlane",
+    "**/android",
+    "**/ios",
+    "**/.husky",
+    "**/screens"
+  ],
+  "include": [
+    "main.py",
+    "app/**/*.py",
+    "tests/**/*.py",
+    "database.py",
+    "models.py",
+    "init_db.py",
+    "example_api_client.py"
+  ],
+  "pythonVersion": "3.11",
+  "typeCheckingMode": "basic",
+  "reportMissingImports": "warning",
+  "reportUndefinedVariable": "warning"
+}
